@@ -21,14 +21,24 @@
   <h3 th:text="${diary.title}"></h3>
 
   <span class="badge mb-3"
-    th:text="${diary.sentiment}"
-    th:classappend="${diary.sentiment=='Positive'} ? 'bg-success' : 'bg-danger'">
+    th:text="${diary.sentiment != null ? diary.sentiment : 'Not Analysed'}"
+    th:class="${diary.sentiment != null and #strings.equalsIgnoreCase(diary.sentiment, 'positive')} ? 'badge bg-success' : (${diary.sentiment != null and #strings.equalsIgnoreCase(diary.sentiment, 'negative')} ? 'badge bg-danger' : 'badge bg-secondary')">
   </span>
+
+  <div th:if="${diary.summary != null}" 
+       th:class="${#strings.equalsIgnoreCase(diary.sentiment, 'positive')} ? 'alert alert-success mb-3 p-3' : 'alert alert-light border-danger text-danger mb-3 p-3'" 
+       style="border-radius: 8px;">
+    <strong th:text="${#strings.equalsIgnoreCase(diary.sentiment, 'positive') ? '💡 Tip:' : '💙 Support:'}"></strong> 
+    <span th:text="${diary.summary}"></span>
+  </div>
 
   <p th:text="${diary.content}" style="white-space:pre-wrap;"></p>
 
   <div class="d-flex gap-2 mt-3">
     <a th:href="@{/edit/{id}(id=${diary.id})}" class="btn btn-secondary">Edit</a>
+    <form th:action="@{/analyze/{id}(id=${diary.id})}" method="post" style="display:inline">
+      <button type="submit" class="btn btn-info text-white">Analyse</button>
+    </form>
     <a href="/dashboard" class="btn btn-outline-primary">Back to Dashboard</a>
   </div>
 

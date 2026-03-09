@@ -88,14 +88,24 @@ Create New Diary
 
 <p th:text="${d.content}"></p>
 
-<span class="badge"
-th:text="${d.sentiment}"
-th:classappend="${d.sentiment=='Positive'} ? 'bg-success' : 'bg-danger'">
+<span class="badge mb-2"
+  th:text="${d.sentiment != null ? d.sentiment : 'Not Analysed'}"
+  th:class="${d.sentiment != null and #strings.equalsIgnoreCase(d.sentiment, 'positive')} ? 'badge bg-success' : (${d.sentiment != null and #strings.equalsIgnoreCase(d.sentiment, 'negative')} ? 'badge bg-danger' : 'badge bg-secondary')">
 </span>
 
-<div class="mt-3 d-flex gap-2">
+<div th:if="${d.summary != null}" 
+     th:class="${#strings.equalsIgnoreCase(d.sentiment, 'positive')} ? 'alert alert-success mt-2 p-2' : 'alert alert-light border-danger text-danger mt-2 p-2'" 
+     style="font-size: 0.9em; border-radius: 8px;">
+  <strong th:text="${#strings.equalsIgnoreCase(d.sentiment, 'positive') ? '💡 Tip:' : '💙 Support:'}"></strong> 
+  <span th:text="${d.summary}"></span>
+</div>
+
+<div class="mt-3 d-flex gap-2 flex-wrap">
   <a th:href="@{/view/{id}(id=${d.id})}" class="btn btn-sm btn-outline-primary">View</a>
   <a th:href="@{/edit/{id}(id=${d.id})}" class="btn btn-sm btn-outline-secondary">Edit</a>
+  <form th:action="@{/analyze/{id}(id=${d.id})}" method="post" style="display:inline">
+    <button type="submit" class="btn btn-sm btn-info text-white">Analyse</button>
+  </form>
   <form th:action="@{/delete/{id}(id=${d.id})}" method="post" style="display:inline">
     <button type="submit" class="btn btn-sm btn-outline-danger"
       onclick="return confirm('Delete this diary?')">Delete</button>

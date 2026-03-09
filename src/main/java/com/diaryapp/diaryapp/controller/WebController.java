@@ -17,6 +17,7 @@ import com.diaryapp.diaryapp.model.DiaryEntry;
 import com.diaryapp.diaryapp.model.User;
 import com.diaryapp.diaryapp.repository.DiaryRepository;
 import com.diaryapp.diaryapp.repository.UserRepository;
+import com.diaryapp.diaryapp.service.DiaryService;
 
 @Controller
 public class WebController {
@@ -29,6 +30,11 @@ public class WebController {
 
     @Autowired
     PasswordEncoder passwordEncoder;
+
+    @Autowired
+    DiaryService diaryService;
+
+    // ── Auth ────────────────────────────────────────────────────────────────────
 
     @GetMapping("/login")
     public String loginPage() {
@@ -49,12 +55,16 @@ public class WebController {
         return "redirect:/login";
     }
 
+    // ── Dashboard ───────────────────────────────────────────────────────────────
+
     @GetMapping("/dashboard")
     public String dashboard(Model model, Principal principal) {
         List<DiaryEntry> diaries = diaryRepo.findByUsername(principal.getName());
         model.addAttribute("diaries", diaries);
         return "dashboard";
     }
+
+    // ── Create diary ────────────────────────────────────────────────────────────
 
     @GetMapping("/new")
     public String newDiary() {
@@ -70,6 +80,8 @@ public class WebController {
         diaryRepo.save(entry);
         return "redirect:/dashboard";
     }
+
+    // ── View / Edit / Update / Delete ───────────────────────────────────────────
 
     @GetMapping("/view/{id}")
     public String viewDiary(@PathVariable String id, Model model) {
@@ -92,6 +104,8 @@ public class WebController {
             DiaryEntry entry = optional.get();
             entry.setTitle(title);
             entry.setContent(content);
+            entry.setSentiment(null); // Reset sentiment if content changed
+            entry.setSummary(null);
             diaryRepo.save(entry);
         }
         return "redirect:/dashboard";
@@ -101,5 +115,45 @@ public class WebController {
     public String deleteDiary(@PathVariable String id) {
         diaryRepo.deleteById(id);
         return "redirect:/dashboard";
+    }
+
+    // ── Analyse endpoint (on-demand per entry) ──────────────────────────────────
+
+    @PostMapping("/analyze/{id}")
+    public String analyzeDiary(@PathVariable String id) {
+        Optional<DiaryEntry> optional = diaryRepo.findById(id);
+        if (optional.isPresent()) {
+            DiaryEntry entry = optional.get();
+            String detectedSentiment = fetchSentiment(entry.getContent());
+            entry.setSentiment(detectedSentiment);
+            
+            if ("Positive".equalsIgnoreCase(detectedSentiment)) {
+                entry.setSummary("It's wonderful that you're having a positive experience! Keep embracing the good moments and let them fuel your day.");
+            } else if ("Negative".equalsIgnoreCase(detectedSentiment)) {
+                entry.setSummary("It sounds like things are a bit tough right now. Take a deep breath, be kind to yourself, and remember it's okay to have bad days.");
+            } else {
+                entry.setSummary("Thank you for sharing your thoughts today.");
+            }
+            
+            diaryRepo.save(entry);
+        }
+        return "redirect:/dashboard";
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Calls the Python sentiment micro-service and returns a capitalized label
+     * (e.g. "Positive" / "Negative"). Falls back to "Unknown" if the service is
+     * unavailable.
+     */
+    private String fetchSentiment(String text) {
+        try {
+            String raw = diaryService.analyzeSentiment(text);
+            if (raw == null || raw.isEmpty()) return "Unknown";
+            return Character.toUpperCase(raw.charAt(0)) + raw.substring(1).toLowerCase();
+        } catch (Exception e) {
+            return "Unknown";
+        }
     }
 }

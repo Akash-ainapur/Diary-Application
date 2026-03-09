@@ -15,6 +15,8 @@ public class DiaryEntry {
 
     private String sentiment;
 
+    private String summary;
+
     private String username;
 
     public String getId() {
@@ -47,6 +49,14 @@ public class DiaryEntry {
 
     public void setSentiment(String sentiment) {
         this.sentiment = sentiment;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
     }
 
     public String getUsername() { return username; }
